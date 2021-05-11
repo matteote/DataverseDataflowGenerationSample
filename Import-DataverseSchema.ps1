@@ -66,7 +66,7 @@ $Headers = @{ `
 $TablesToIngest = New-Object System.Collections.Generic.HashSet[string]
 
 $Config.TablesToIngest | ForEach-Object {
-    $TablesToIngest.Add($_) | Out-Null
+    $TablesToIngest.Add($_.Name) | Out-Null
 }
 
 # Set of referenced tables

@@ -1,0 +1,28 @@
+{
+    "TablesToIngest": [
+        {
+            "Name": "account",
+            "DataSet": "AzureSqlTableAccount"
+        },
+        {
+            "Name": "product",
+            "DataSet": "AzureSqlTableProduct"
+        },
+        {
+            "Name": "incident",
+            "DataSet": "AzureSqlTableIncident"
+        },
+        {
+            "Name": "contact",
+            "DataSet": "AzureSqlTableContact"
+        }
+    ],
+    "StorageAccount": "stmtlvdynamics6",
+    "FileSystem": "dataverse-matteote-unq08b4f14c0b494fb8b508a30a21a95",
+    "DataLakeLinkedService": "stmtlvdynamics6",
+    
+    "CrmSchemaPath": ".\\CrmSchema",
+    "DataLakeCachePath": ".\\DataLakeCache",
+    "ArtefactsPath": ".\\Artefacts",
+    "TablesToSyncOutputPath": ".\\TablesToSync.csv"
+}

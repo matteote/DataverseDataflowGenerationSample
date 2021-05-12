@@ -39,6 +39,8 @@ function Get-Table {
         $ExpandReferences = $false
     )
 
+    Write-Information "Retrieving metadata for table $TableName"
+
     $Table = @{
         Name = $TableName
     }
@@ -92,8 +94,6 @@ function Get-Table {
             }
         }
     }
-
-    $Table.HasOptionSets = $false
 
     $Table.Columns = foreach ($DataLakeModelColumn in $DataLakeModel.entities[0].attributes) {
         $ColumnName = $DataLakeModelColumn.name
@@ -266,6 +266,8 @@ function Get-CsvSourceTransformation {
         $FileSystem
     )
 
+    Write-Information "Generating CSV source transformation for table $($Table.Name)"
+
     $SourceTransformationName = Get-SourceTransformationName $Table.Name
 
     # {0} = $OutputColumns
@@ -359,6 +361,9 @@ function Add-OptionSetSourceTransformations {
         $LinkedService,
         $FileSystem
     )
+
+    Write-Information "Adding source transformation for OptionSet fields"
+
     $SourceName = Format-TransformationName "Source$($TableName)Metadata"
 
     $Source = [PSCustomObject]@{
@@ -443,6 +448,8 @@ function Add-OptionSetDerivedColumnTransformation {
         $Columns
     )
 
+    Write-Information "Adding derive transformation for OptionSet fields"
+
     $DeriveTransformationName = Format-TransformationName "DeriveOptionSetColumns"
 
     $ColumnScripts = foreach ($Column in $Columns) {
@@ -478,6 +485,8 @@ function Add-LookupColumn {
         $DataFlow,
         $Column
     )
+
+    Write-Information "Adding lookup column $($Column.Name)"
 
     $Selects = @()
 
@@ -584,6 +593,8 @@ function Add-OutputSelectTransformation {
         $OutputColumns
     )
 
+    Write-Information "Adding output select transformation"
+
     $Columns = [string]::Join(",`n        ", 
         $($OutputColumns | ForEach-Object { "$($_.Name) = $($_.SourceColumn)" })
     )
@@ -615,6 +626,8 @@ function Add-SqlSink {
         $DataSet,
         $OutputColumns
     )
+
+    Write-Information "Adding SQL sink"
 
     $SinkName = "SinkOutput"
 
@@ -652,6 +665,8 @@ function Get-DataFlowCode {
     param (
         $DataFlow
     )
+
+    Write-Information "Generating code for data flow $($DataFlow.name)"
 
     $DataFlowObj = @{}
     $DataFlowObj.name = $DataFlow.name
@@ -713,6 +728,8 @@ function Build-TableScript {
         $TableName,
         $Columns
     )
+
+    Write-Information "Generating script for table $TableName"
 
     $TableScript = "
     CREATE TABLE [{0}] (
@@ -835,9 +852,9 @@ function Build-TableArtefacts {
     }
 
     if ($OptionSetDerivedColumns) {
-    Add-OptionSetDerivedColumnTransformation `
-        -DataFlow $DataFlow `
-        -Columns $OptionSetDerivedColumns
+        Add-OptionSetDerivedColumnTransformation `
+            -DataFlow $DataFlow `
+            -Columns $OptionSetDerivedColumns
     }
 
     Add-OutputSelectTransformation `

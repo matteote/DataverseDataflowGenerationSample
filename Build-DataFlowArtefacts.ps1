@@ -187,6 +187,11 @@ function Get-Table {
                         $IsMultiSelectPicklist = $true
                         break
                     }
+                    "ManagedProperty" {
+                        $DataFlowDataType = "string";
+                        $SqlDataType = "nvarchar(128)"
+                        break
+                    }
                     Default {
                         Write-Warning "Table $TableName - Column $ColumnName - Unknown string datatype $($DataLakeMetadataAttributes[$ColumnName].AttributeType)"
                         $MaxLength = $SourceMetadataAttributes[$ColumnName].MaxLength

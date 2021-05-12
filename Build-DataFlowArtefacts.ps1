@@ -192,6 +192,11 @@ function Get-Table {
                         $SqlDataType = "nvarchar(128)"
                         break
                     }
+                    "File" {
+                        $DataFlowDataType = "string";
+                        $SqlDataType = "nvarchar(max)"
+                        break
+                    }
                     Default {
                         Write-Warning "Table $TableName - Column $ColumnName - Unknown string datatype $($DataLakeMetadataAttributes[$ColumnName].AttributeType)"
                         $MaxLength = $SourceMetadataAttributes[$ColumnName].MaxLength

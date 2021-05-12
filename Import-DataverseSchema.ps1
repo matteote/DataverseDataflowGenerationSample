@@ -121,7 +121,7 @@ $TablesToIngest | Sort-Object | ForEach-Object {
 
     $Entity = ($Response.content | ConvertFrom-Json)
 
-    if ( IsValidEntity $Entity ) {
+    if ( (IsValidEntity $Entity) -and ($Entity.LogicalName -notin $Config.TablesToIgnore)) {
         $Entity | ConvertTo-Json | Out-File "$($Config.CrmSchemaPath)\Entity_$TableName.json" -Encoding utf8
 
         [PSCustomObject]@{

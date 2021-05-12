@@ -74,24 +74,26 @@ function Get-Table {
 
     if ($ExpandReferences) {
         foreach ($Reference in $DataLakeMetadata.TargetMetadata) {
-            $ReferencedTableMetadata = (Get-Content ".\$($Config.CrmSchemaPath)\Entity_$($Reference.ReferencedEntity).json" `
-                | ConvertFrom-Json)
+            if ($Reference.ReferencedEntity -notin $Config.TablesToIgnore) {
+                $ReferencedTableMetadata = (Get-Content ".\$($Config.CrmSchemaPath)\Entity_$($Reference.ReferencedEntity).json" `
+                    | ConvertFrom-Json)
 
-            $ReferencedAttribute = $Reference.ReferencedAttribute
+                $ReferencedAttribute = $Reference.ReferencedAttribute
 
-            if (-not $ReferencedAttribute) {
-                $ReferencedAttribute = $ReferencedTableMetadata.PrimaryIdAttribute
-            }
-
-            $ColumnReferences[$Reference.AttributeName] += @(
-                [PSCustomObject]@{
-                    ReferencedEntity              = $Reference.ReferencedEntity;
-                    ReferencedAttribute           = $ReferencedAttribute;
-                    ReferencedEntityNameAttribute = $ReferencedTableMetadata.PrimaryNameAttribute
+                if (-not $ReferencedAttribute) {
+                    $ReferencedAttribute = $ReferencedTableMetadata.PrimaryIdAttribute
                 }
-            )
 
-            $Table.ReferencedEntities.Add($Reference.ReferencedEntity) | Out-Null
+                $ColumnReferences[$Reference.AttributeName] += @(
+                    [PSCustomObject]@{
+                        ReferencedEntity              = $Reference.ReferencedEntity;
+                        ReferencedAttribute           = $ReferencedAttribute;
+                        ReferencedEntityNameAttribute = $ReferencedTableMetadata.PrimaryNameAttribute
+                    }
+                )
+
+                $Table.ReferencedEntities.Add($Reference.ReferencedEntity) | Out-Null
+            }
         }
     }
 
@@ -565,10 +567,10 @@ function Add-LookupColumn {
     $DataFlow.Root = $Lookup
     
     [PSCustomObject]@{
-        Name         = $DescriptionColumnName;
-        SourceColumn = "{0}" -f `
+        Name             = $DescriptionColumnName;
+        SourceColumn     = "{0}" -f `
             $DescriptionColumnName;
-        SqlDataType  = $Column.SqlDataType;
+        SqlDataType      = $Column.SqlDataType;
         DataFlowDataType = $Column.DataFlowDataType
     }
 }
@@ -628,7 +630,7 @@ function Add-SqlSink {
         errorHandlingOption: 'stopOnFirstError') ~> {2} " -f `
         $DataFlow.Root.Name, `
         [String]::Join(",\r        ", $(
-            foreach($Column in $OutputColumns) {
+            foreach ($Column in $OutputColumns) {
                 "{0} as {1}" -f `
                     $Column.Name, `
                     $Column.DataFlowDataType
@@ -637,10 +639,10 @@ function Add-SqlSink {
         $SinkName
 
     $DataFlow.Sinks += @([PSCustomObject]@{
-        Name = $SinkName;
-        Script = $SinkScript;
-        DataSet = $DataSet
-    })
+            Name    = $SinkName;
+            Script  = $SinkScript;
+            DataSet = $DataSet
+        })
 }
 
 function Get-DataFlowCode {
@@ -716,7 +718,7 @@ function Build-TableScript {
     " -f `
         $TableName, `
         [String]::Join(",`n", $(
-            foreach($Column in $Columns) {
+            foreach ($Column in $Columns) {
                 "[{0}] {1}" -f `
                     $Column.Name, `
                     $Column.SqlDataType
@@ -788,10 +790,10 @@ function Build-TableArtefacts {
             $OptionSetDerivedColumns += @($Column)
             $OutputColumns += @(
                 [PSCustomObject]@{
-                    Name         = $Column.Name;
-                    SourceColumn = "{0}" -f `
+                    Name             = $Column.Name;
+                    SourceColumn     = "{0}" -f `
                         $Column.Name;
-                    SqlDataType  = "nvarchar(128)";
+                    SqlDataType      = "nvarchar(128)";
                     DataFlowDataType = "string"
                 }
             )
@@ -800,11 +802,11 @@ function Build-TableArtefacts {
             if ($Column.References) {
                 $OutputColumns += @(
                     [PSCustomObject]@{
-                        Name         = $Column.Name;
-                        SourceColumn = "{1}" -f `
+                        Name             = $Column.Name;
+                        SourceColumn     = "{1}" -f `
                             $MainTableSource.Name, `
                             $Column.Name;
-                        SqlDataType  = $Column.SqlDataType;
+                        SqlDataType      = $Column.SqlDataType;
                         DataFlowDataType = $Column.DataFlowDataType
                     }
                 )    
@@ -818,10 +820,10 @@ function Build-TableArtefacts {
             else {
                 $OutputColumns += @(
                     [PSCustomObject]@{
-                        Name         = $Column.Name;
-                        SourceColumn = "{0}" -f `
+                        Name             = $Column.Name;
+                        SourceColumn     = "{0}" -f `
                             $Column.Name;
-                        SqlDataType  = $Column.SqlDataType;
+                        SqlDataType      = $Column.SqlDataType;
                         DataFlowDataType = $Column.DataFlowDataType
                     }
                 )    

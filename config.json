@@ -17,6 +17,11 @@
             "DataSet": "AzureSqlTableContact"
         }
     ],
+    "TablesToIgnore": [
+        "externalparty",
+        "knowledgebaserecord",
+        "sla"
+    ],
     "StorageAccount": "stmtlvdynamics6",
     "FileSystem": "dataverse-matteote-unq08b4f14c0b494fb8b508a30a21a95",
     "DataLakeLinkedService": "stmtlvdynamics6",

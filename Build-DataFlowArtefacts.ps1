@@ -95,6 +95,8 @@ function Get-Table {
         }
     }
 
+    $Table.HasOptionSets = $false
+
     $Table.Columns = foreach ($DataLakeModelColumn in $DataLakeModel.entities[0].attributes) {
         $ColumnName = $DataLakeModelColumn.name
         $IsMultiSelectPicklist = $false

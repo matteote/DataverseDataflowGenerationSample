@@ -72,25 +72,27 @@ function Get-Table {
 
     if ($ExpandReferences) {
         foreach ($Reference in $DataLakeMetadata.TargetMetadata) {
-            if ($Reference.ReferencedEntity -notin $Config.TablesToIgnore) {
-                $ReferencedTableMetadata = (Get-Content ".\$($Config.CrmSchemaPath)\Entity_$($Reference.ReferencedEntity).json" `
-                    | ConvertFrom-Json)
-
-                $ReferencedAttribute = $Reference.ReferencedAttribute
-
-                if (-not $ReferencedAttribute) {
-                    $ReferencedAttribute = $ReferencedTableMetadata.PrimaryIdAttribute
-                }
-
-                $ColumnReferences[$Reference.AttributeName] += @(
-                    [PSCustomObject]@{
-                        ReferencedEntity              = $Reference.ReferencedEntity;
-                        ReferencedAttribute           = $ReferencedAttribute;
-                        ReferencedEntityNameAttribute = $ReferencedTableMetadata.PrimaryNameAttribute
+            $ReferencedTableMetadataFile = ".\$($Config.CrmSchemaPath)\Entity_$($Reference.ReferencedEntity).json"
+            if (Test-Path -Path $ReferencedTableMetadataFile) {
+                if ($Reference.ReferencedEntity -notin $Config.TablesToIgnore) {
+                    $ReferencedTableMetadata = (Get-Content $ReferencedTableMetadataFile | ConvertFrom-Json)
+    
+                    $ReferencedAttribute = $Reference.ReferencedAttribute
+    
+                    if (-not $ReferencedAttribute) {
+                        $ReferencedAttribute = $ReferencedTableMetadata.PrimaryIdAttribute
                     }
-                )
-
-                $Table.ReferencedEntities.Add($Reference.ReferencedEntity) | Out-Null
+    
+                    $ColumnReferences[$Reference.AttributeName] += @(
+                        [PSCustomObject]@{
+                            ReferencedEntity              = $Reference.ReferencedEntity;
+                            ReferencedAttribute           = $ReferencedAttribute;
+                            ReferencedEntityNameAttribute = $ReferencedTableMetadata.PrimaryNameAttribute
+                        }
+                    )
+    
+                    $Table.ReferencedEntities.Add($Reference.ReferencedEntity) | Out-Null
+                }    
             }
         }
     }

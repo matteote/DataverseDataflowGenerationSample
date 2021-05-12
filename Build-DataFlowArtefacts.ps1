@@ -59,10 +59,6 @@ function Get-Table {
         | Get-Unique
     )
 
-    if ($OptionSets.Count -gt 0) {
-        $Table.HasOptionSets = $true
-    }
-    
     $SourceMetadata = (Get-Content ".\$($Config.CrmSchemaPath)\Entity_$TableName.json" | ConvertFrom-Json)
     $SourceMetadataAttributes = @{}
     foreach ($Attribute in $SourceMetadata.Attributes) {
@@ -96,6 +92,8 @@ function Get-Table {
             }
         }
     }
+
+    $Table.HasOptionSets = $false
 
     $Table.Columns = foreach ($DataLakeModelColumn in $DataLakeModel.entities[0].attributes) {
         $ColumnName = $DataLakeModelColumn.name
@@ -216,17 +214,22 @@ function Get-Table {
             $ReferenceTypeAttribute = $null
         }
 
-        [PSCustomObject]@{
+        $Column = [PSCustomObject]@{
             TableName              = $TableName;
             Name                   = $ColumnName;
             DataFlowDataType       = $DataFlowDataType;
             SqlDataType            = $SqlDataType;
             References             = $ColumnReferences[$ColumnName];
             ReferenceTypeAttribute = $ReferenceTypeAttribute;
-            HasOptionSet           = $OptionSets -and $OptionSets.Contains($ColumnName)
+            HasOptionSet           = ($DataLakeModelColumn.dataType -ne "boolean") -and $OptionSets -and $OptionSets.Contains($ColumnName)
             IsMultiSelectPicklist  = $IsMultiSelectPicklist
         }
 
+        if ($Column.HasOptionSet) {
+            $Table.HasOptionSets = $true
+        }
+
+        $Column
     }
 
     $Table
@@ -786,7 +789,7 @@ function Build-TableArtefacts {
     $OutputColumns = @()
 
     foreach ($Column in $Table.Columns) {
-        if ($Column.HasOptionSet -and $Column.DataFlowDataType -ne 'boolean') {
+        if ($Column.HasOptionSet) {
             $OptionSetDerivedColumns += @($Column)
             $OutputColumns += @(
                 [PSCustomObject]@{
@@ -831,9 +834,11 @@ function Build-TableArtefacts {
         }
     }
 
+    if ($OptionSetDerivedColumns) {
     Add-OptionSetDerivedColumnTransformation `
         -DataFlow $DataFlow `
         -Columns $OptionSetDerivedColumns
+    }
 
     Add-OutputSelectTransformation `
         -DataFlow $DataFlow `

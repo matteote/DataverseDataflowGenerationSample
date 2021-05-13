@@ -102,115 +102,101 @@ function Get-Table {
     $Table.Columns = foreach ($DataLakeModelColumn in $DataLakeModel.entities[0].attributes) {
         $ColumnName = $DataLakeModelColumn.name
         $IsMultiSelectPicklist = $false
+        $TruncateColumn = $false
         switch ($DataLakeModelColumn.dataType) {
             "boolean" {
-                $DataFlowDataType = "boolean";
+                $DataFlowDataType = "boolean"
                 $SqlDataType = "bit"
                 break
             }
             "dateTime" {
-                $DataFlowDataType = "timestamp";
+                $DataFlowDataType = "timestamp"
                 $SqlDataType = "datetime"
                 break
             }
             "decimal" {
                 switch ($DataLakeMetadataAttributes[$ColumnName].AttributeType) {
                     "Double" {
-                        $DataFlowDataType = "double";
+                        $DataFlowDataType = "double"
                         $SqlDataType = "float"
                         break
                     }
                     "Money" {
-                        $DataFlowDataType = "decimal(38,4)";
+                        $DataFlowDataType = "decimal(38,4)"
                         $SqlDataType = "money"
                         break
                     }
                     "Decimal" {
                         $Precision = $SourceMetadataAttributes[$ColumnName].Precision
-                        $DataFlowDataType = "decimal(38,$Precision)";
+                        $DataFlowDataType = "decimal(38,$Precision)"
                         $SqlDataType = "decimal(38,$Precision)"
                         break
                     }
                     Default {
                         Write-Warning "Table $TableName - Column $ColumnName - Unknown Decimal datatype $($DataLakeMetadataAttributes[$ColumnName].AttributeType)"
                         $Precision = $SourceMetadataAttributes[$ColumnName].Precision
-                        $DataFlowDataType = "decimal(38,$Precision)";
+                        $DataFlowDataType = "decimal(38,$Precision)"
                         $SqlDataType = "decimal(38,$Precision)"
                     }
                 }
             }
             "guid" {
-                $DataFlowDataType = "string";
-                $SqlDataType = "nvarchar(36)"
+                $DataFlowDataType = "string"
+                $SqlDataType = "nvarchar(4000)"
                 break
             }
             "int64" {
-                $DataFlowDataType = "long";
+                $DataFlowDataType = "long"
                 $SqlDataType = "bigint"
                 break
             }
             "string" {
                 switch ($DataLakeMetadataAttributes[$ColumnName].AttributeType) {
                     "EntityName" {
-                        $DataFlowDataType = "string";
-                        $SqlDataType = "nvarchar(128)"
+                        $DataFlowDataType = "string"
+                        $SqlDataType = "nvarchar(4000)"
                         break
                     }
                     "Memo" {
-                        $DataFlowDataType = "string";
-                        $SqlDataType = "nvarchar(max)"
+                        $DataFlowDataType = "string"
+                        $SqlDataType = "nvarchar(4000)"
+                        $TruncateColumn = $true
                         break
                     }
                     "String" {
-                        $MaxLength = $SourceMetadataAttributes[$ColumnName].MaxLength
-                        if (-not $MaxLength) {
-                            if ($ColumnName -like "*_entitytype") {
-                                $MaxLength = 128
-                            }
-                            else {
-                                Write-Warning "Table $TableName - Column $ColumnName - Unknow string length for column $ColumnName, defaulting to 128"
-                                $MaxLength = 128
-                            }
-                        }
-                        $DataFlowDataType = "string";
-                        $SqlDataType = "nvarchar($MaxLength)"
+                        $DataFlowDataType = "string"
+                        $SqlDataType = "nvarchar(4000)"
                         break
                     }
                     "Virtual" {
-                        $DataFlowDataType = "string";
-                        $SqlDataType = "nvarchar(75)"
+                        $DataFlowDataType = "string"
+                        $SqlDataType = "nvarchar(4000)"
                         break
                     }
                     "MultiSelectPicklist" {
-                        $DataFlowDataType = "string";
-                        $SqlDataType = "nvarchar(max)"
+                        $DataFlowDataType = "string"
+                        $SqlDataType = "nvarchar(4000)"
                         $IsMultiSelectPicklist = $true
+                        $TruncateColumn = $true
                         break
                     }
                     "ManagedProperty" {
-                        $DataFlowDataType = "string";
-                        $SqlDataType = "nvarchar(128)"
+                        $DataFlowDataType = "string"
+                        $SqlDataType = "nvarchar(4000)"
+                        $TruncateColumn = $true
                         break
                     }
                     "File" {
-                        $DataFlowDataType = "string";
-                        $SqlDataType = "nvarchar(max)"
+                        $DataFlowDataType = "string"
+                        $SqlDataType = "nvarchar(4000)"
+                        $TruncateColumn = $true
                         break
                     }
                     Default {
                         Write-Warning "Table $TableName - Column $ColumnName - Unknown string datatype $($DataLakeMetadataAttributes[$ColumnName].AttributeType)"
-                        $MaxLength = $SourceMetadataAttributes[$ColumnName].MaxLength
-                        if (-not $MaxLength) {
-                            if ($ColumnName -like "*_entitytype") {
-                                $MaxLength = 128
-                            }
-                            else {
-                                Write-Warning "Table $TableName - Column $ColumnName - Unknow string length for column $ColumnName, defaulting to 128"
-                                $MaxLength = 128
-                            }
-                        }
-                        $DataFlowDataType = "string";
-                        $SqlDataType = "nvarchar($MaxLength)"
+                        $DataFlowDataType = "string"
+                        $SqlDataType = "nvarchar(4000)"
+                        $TruncateColumn = $true
                     }
                     
                 }
@@ -218,8 +204,9 @@ function Get-Table {
             }
             Default {
                 Write-Warning "Table $TableName - Column $ColumnName - Unknown data type $($DataLakeModelColumn.dataType), defaulting to string"
-                $DataFlowDataType = "string";
-                $SqlDataType = "nvarchar(128)"
+                $DataFlowDataType = "string"
+                $SqlDataType = "nvarchar(4000)"
+                $TruncateColumn = $true
             }
         }
 
@@ -235,8 +222,9 @@ function Get-Table {
             SqlDataType            = $SqlDataType;
             References             = $ColumnReferences[$ColumnName];
             ReferenceTypeAttribute = $ReferenceTypeAttribute;
-            HasOptionSet           = ($DataLakeModelColumn.dataType -ne "boolean") -and $OptionSets -and $OptionSets.Contains($ColumnName)
-            IsMultiSelectPicklist  = $IsMultiSelectPicklist
+            HasOptionSet           = ($DataLakeModelColumn.dataType -ne "boolean") -and $OptionSets -and $OptionSets.Contains($ColumnName);
+            IsMultiSelectPicklist  = $IsMultiSelectPicklist;
+            TruncateColumn         = $TruncateColumn
         }
 
         if ($Column.HasOptionSet) {
@@ -600,6 +588,36 @@ function Add-LookupColumn {
         DataFlowDataType = $Column.DataFlowDataType
     }
 }
+function Add-TruncateColumnsDeriveTransformation {
+    param (
+        $DataFlow,
+        $ColumnsToTruncate
+    )
+
+    Write-Information "Adding derive transformation for column truncation"
+
+    $DeriveName = Format-TransformationName "DeriveTruncateColumns"
+
+    $DeriveScript = "{0} derive(
+        {1}
+        ) ~> {2} " -f `
+        $DataFlow.Root.Name, `
+        [String]::Join(",\r        ", $(
+            foreach ($Column in $ColumnsToTruncate) {
+                "{0} = left({0},4000)" -f $Column
+            }
+        )), `
+        $DeriveName
+
+    $Derive = [PSCustomObject]@{
+        Name   = $DeriveName;
+        Script = $DeriveScript
+    }
+
+    $DataFlow.Transformations += @($Derive)
+
+    $DataFlow.Root = $Derive
+}
 
 function Add-OutputSelectTransformation {
     param (
@@ -817,9 +835,14 @@ function Build-TableArtefacts {
     }
 
     $OptionSetDerivedColumns = @()
+    $ColumnsToTruncate = @()
     $OutputColumns = @()
 
     foreach ($Column in $Table.Columns) {
+        if ($Column.TruncateColumn) {
+            $ColumnsToTruncate += @($Column.Name)
+        }
+
         if ($Column.HasOptionSet) {
             $OptionSetDerivedColumns += @($Column)
             $OutputColumns += @(
@@ -827,10 +850,11 @@ function Build-TableArtefacts {
                     Name             = $Column.Name;
                     SourceColumn     = "{0}" -f `
                         $Column.Name;
-                    SqlDataType      = "nvarchar(128)";
+                    SqlDataType      = "nvarchar(4000)";
                     DataFlowDataType = "string"
                 }
             )
+            $ColumnsToTruncate += @($Column.Name)
         }
         else {
             if ($Column.References) {
@@ -869,6 +893,12 @@ function Build-TableArtefacts {
         Add-OptionSetDerivedColumnTransformation `
             -DataFlow $DataFlow `
             -Columns $OptionSetDerivedColumns
+    }
+
+    if ($ColumnsToTruncate) {
+        Add-TruncateColumnsDeriveTransformation `
+            -DataFlow $DataFlow `
+            -ColumnsToTruncate $ColumnsToTruncate
     }
 
     Add-OutputSelectTransformation `

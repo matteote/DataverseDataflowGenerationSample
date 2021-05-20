@@ -60,6 +60,14 @@ function Get-Table {
         | ForEach-Object { $_ | ForEach-Object { $_.OptionSetName } }`
         | Get-Unique
     )
+    
+    if ($DataLakeMetadata.StateMetadata) {
+        $OptionSets.Add("statecode")
+    }
+    
+    if ($DataLakeMetadata.StatusMetadata) {
+        $OptionSets.Add("statuscode")
+    }
 
     $SourceMetadata = (Get-Content ".\$($Config.CrmSchemaPath)\Entity_$TableName.json" | ConvertFrom-Json)
     $SourceMetadataAttributes = @{}
@@ -375,9 +383,9 @@ function Add-OptionSetSourceTransformations {
             source(output(
                 AttributeMetadata as (AttributeName as string, AttributeType as string, AttributeTypeCode as short, EntityName as string, MetadataId as string, Precision as short, Timestamp as string, Version as integer)[],
                 GlobalOptionSetMetadata as (IsUserLocalizedLabel as boolean, LocalizedLabel as string, LocalizedLabelLanguageCode as short, Option as integer, OptionSetName as string)[],
-                OptionSetMetadata as (EntityName as string, IsUserLocalizedLabel as boolean, LocalizedLabel as string, LocalizedLabelLanguageCode as short, Option as short, OptionSetName as string)[],
-                StateMetadata as (EntityName as string, IsUserLocalizedLabel as boolean, LocalizedLabel as string, LocalizedLabelLanguageCode as short, State as boolean)[],
-                StatusMetadata as (EntityName as string, IsUserLocalizedLabel as boolean, LocalizedLabel as string, LocalizedLabelLanguageCode as short, State as boolean, Status as short)[],
+                OptionSetMetadata as (EntityName as string, IsUserLocalizedLabel as boolean, LocalizedLabel as string, LocalizedLabelLanguageCode as short, Option as integer, OptionSetName as string)[],
+                StateMetadata as (EntityName as string, IsUserLocalizedLabel as boolean, LocalizedLabel as string, LocalizedLabelLanguageCode as short, State as integer)[],
+                StatusMetadata as (EntityName as string, IsUserLocalizedLabel as boolean, LocalizedLabel as string, LocalizedLabelLanguageCode as short, State as integer, Status as integer)[],
                 TargetMetadata as (AttributeName as string, EntityName as string, ReferencedAttribute as string, ReferencedEntity as string)[]
             ),
                 allowSchemaDrift: true,
@@ -422,9 +430,49 @@ function Add-OptionSetSourceTransformations {
     }
     $DataFlow.Transformations += @($FlattenOptionSets)
 
+    $FlattenStatusMetadata = [PSCustomObject]@{
+        Name   = "FlattenStatusMetadata";
+        Script = "
+            {0} foldDown(unroll(StatusMetadata),
+            mapColumn(
+                Option = StatusMetadata.Status,
+                LocalizedLabel = StatusMetadata.LocalizedLabel
+            ),
+            skipDuplicateMapInputs: false,
+            skipDuplicateMapOutputs: false) ~> FlattenStatusMetadata 
+            " -f $SourceName
+    }
+    $DataFlow.Transformations += @($FlattenStatusMetadata)
+
+    $DeriveStatusColumn = [PSCustomObject]@{
+        Name   = "DeriveStatusColumn";
+        Script = "FlattenStatusMetadata derive(OptionSetName = 'statuscode') ~> DeriveStatusColumn"
+    }
+    $DataFlow.Transformations += @($DeriveStatusColumn)
+
+    $FlattenStateMetadata = [PSCustomObject]@{
+        Name   = "FlattenStateMetadata";
+        Script = "
+            {0} foldDown(unroll(StateMetadata),
+            mapColumn(
+                Option = StateMetadata.State,
+                LocalizedLabel = StateMetadata.LocalizedLabel
+            ),
+            skipDuplicateMapInputs: false,
+            skipDuplicateMapOutputs: false) ~> FlattenStateMetadata 
+            " -f $SourceName
+    }
+    $DataFlow.Transformations += @($FlattenStateMetadata)
+
+    $DeriveStateColumn = [PSCustomObject]@{
+        Name   = "DeriveStateColumn";
+        Script = "FlattenStateMetadata derive(OptionSetName = 'statecode') ~> DeriveStateColumn"
+    }
+    $DataFlow.Transformations += @($DeriveStateColumn)
+
     $UnionOptionSets = [PSCustomObject]@{
         Name   = "UnionOptionSets";
-        Script = "FlattenOptionSets, FlattenGlobalOptionSets union(byName: true) ~> UnionOptionSets "
+        Script = "FlattenOptionSets, FlattenGlobalOptionSets, DeriveStatusColumn, DeriveStateColumn union(byName: true) ~> UnionOptionSets "
     }
     $DataFlow.Transformations += @($UnionOptionSets)
 

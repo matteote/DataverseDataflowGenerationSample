@@ -603,7 +603,7 @@ function Add-LookupColumn {
     $LookupScript = "
         {0}, {1} lookup(
             {5}@{2} == {1}@{2}
-            {3}
+            {3},
             multiple: false,
             pickup: 'any',
             broadcast: 'auto') ~> {4} " -f `
@@ -612,7 +612,7 @@ function Add-LookupColumn {
         $Column.Name, `
     $(
         if ($Column.ReferenceTypeAttribute) {
-            "&& {1} == {3}_entitytype2," -f `
+            "&& {1} == {3}_entitytype2" -f `
             $(Get-SourceTransformationName $Column.TableName), `
                 $Column.ReferenceTypeAttribute, `
                 $LookupSource, `

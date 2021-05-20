@@ -55,18 +55,19 @@ function Get-Table {
         $DataLakeMetadataAttributes[$Attribute.AttributeName] = $Attribute
     }
 
-    $OptionSets = [System.Collections.Generic.HashSet[string]] (
-        $DataLakeMetadata.OptionSetMetadata, $DataLakeMetadata.GlobalOptionSetMetadata `
-        | ForEach-Object { $_ | ForEach-Object { $_.OptionSetName } }`
-        | Get-Unique
-    )
+    $OptionSets = New-Object System.Collections.Generic.HashSet[string]
+    
+    $DataLakeMetadata.OptionSetMetadata, $DataLakeMetadata.GlobalOptionSetMetadata `
+    | ForEach-Object { $_ | ForEach-Object { $_.OptionSetName } } `
+    | Get-Unique `
+    | ForEach-Object { $OptionSets.Add($_) | Out-Null }
     
     if ($DataLakeMetadata.StateMetadata) {
-        $OptionSets.Add("statecode")
+        $OptionSets.Add("statecode") | Out-Null
     }
     
     if ($DataLakeMetadata.StatusMetadata) {
-        $OptionSets.Add("statuscode")
+        $OptionSets.Add("statuscode") | Out-Null
     }
 
     $SourceMetadata = (Get-Content ".\$($Config.CrmSchemaPath)\Entity_$TableName.json" | ConvertFrom-Json)

@@ -222,7 +222,7 @@ function Get-Table {
             SqlDataType            = $SqlDataType;
             References             = $ColumnReferences[$ColumnName];
             ReferenceTypeAttribute = $ReferenceTypeAttribute;
-            HasOptionSet           = ($DataLakeModelColumn.dataType -ne "boolean") -and $OptionSets -and $OptionSets.Contains($ColumnName);
+            HasOptionSet           = $OptionSets -and $OptionSets.Contains($ColumnName);
             IsMultiSelectPicklist  = $IsMultiSelectPicklist;
             TruncateColumn         = $TruncateColumn
         }
@@ -463,7 +463,12 @@ function Add-OptionSetDerivedColumnTransformation {
                 #result),2)" -f $Column.Name
         }
         else {
-            "{0} = CacheOptionSets#lookup(`"{0}`", toInteger({0})).LocalizedLabel" -f $Column.Name
+            if ($Column.DataFlowDataType -eq "boolean") {
+                "{0} = CacheOptionSets#lookup(`"{0}`", iif({0},1,0) ).LocalizedLabel" -f $Column.Name
+            }
+            else {
+                "{0} = CacheOptionSets#lookup(`"{0}`", toInteger({0}) ).LocalizedLabel" -f $Column.Name
+            }
         }
     }
 

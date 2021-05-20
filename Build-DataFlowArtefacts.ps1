@@ -246,28 +246,52 @@ function Get-Table {
     $Table
 }
 
+$script:TransformationNames = @()
+
 function Format-TransformationName {
     param (
         $Name
     )
 
-    $Name -replace "[^a-zA-Z0-9]+", ""
+    $Name = $Name -replace "[^a-zA-Z0-9]+", ""
+
+    $x = 0
+    do {
+        $x++
+        $NewName = "$Name$x"
+    } while ($NewName -in $script:TransformationNames)
+
+    $script:TransformationNames += @($NewName)
+
+    $NewName
 }
+
+$script:SourceTransformations = @{}
 
 function Get-SourceTransformationName {
     param (
         $TableName
     )
 
-    Format-TransformationName "Source$((Get-Culture).TextInfo.ToTitleCase($TableName))"
+    if (-not $script:SourceTransformations[$TableName]) {
+        $script:SourceTransformations[$TableName] = Format-TransformationName "Source$((Get-Culture).TextInfo.ToTitleCase($TableName))"
+    }
+
+    $script:SourceTransformations[$TableName]
 }
+
+$script:LookupDeriveTransformations = @{}
 
 function Get-LookupDeriveTransformationName {
     param (
         $TableName
     )
 
-    Format-TransformationName ("Derive{0}EntityType" -f $TableName)
+    if (-not $script:LookupDeriveTransformations[$TableName]) {
+        $script:LookupDeriveTransformations[$TableName] = Format-TransformationName ("Derive{0}EntityType" -f $TableName)
+    }
+
+    $script:LookupDeriveTransformations[$TableName]
 }
 
 function Get-CsvSourceTransformation {

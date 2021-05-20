@@ -602,7 +602,7 @@ function Add-TruncateColumnsDeriveTransformation {
         {1}
         ) ~> {2} " -f `
         $DataFlow.Root.Name, `
-        [String]::Join(",\r        ", $(
+        [String]::Join(",`n        ", $(
             foreach ($Column in $ColumnsToTruncate) {
                 "{0} = left({0},4000)" -f $Column
             }
@@ -677,7 +677,7 @@ function Add-SqlSink {
         skipDuplicateMapOutputs: true,
         errorHandlingOption: 'stopOnFirstError') ~> {2} " -f `
         $DataFlow.Root.Name, `
-        [String]::Join(",\r        ", $(
+        [String]::Join(",`n        ", $(
             foreach ($Column in $OutputColumns) {
                 "{0} as {1}" -f `
                     $Column.Name, `
@@ -748,7 +748,7 @@ function Get-DataFlowCode {
                     $Sink
                 }                
             );
-            script          = [String]::Join(" ", $TransformationScripts)
+            script          = [String]::Join(" `n", $TransformationScripts)
         }
     }
 
